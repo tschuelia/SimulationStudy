@@ -1,0 +1,189 @@
+import os
+import numpy as np
+import pandas as pd
+import pathlib
+import statistics
+
+from ete3 import Tree
+
+from pypythia.prediction import get_all_features
+from pypythia.msa import MSA
+from pypythia.raxmlng import RAxMLNG
+from pypythia.predictor import DifficultyPredictor
+
+
+# ================================
+# CONFIG
+
+# name prefix of the final parquet file
+prefix = "empirical"
+
+# directory containing the respective MSA files you want to analyze in this run
+data_src = f"../../input_data/dna_gapless/{prefix}"
+
+# where to store all intermediate and final output files
+# this directory will contain a file called {prefix}.parquet with the results for all MSAs
+outdir = f"../dataframes/{prefix}"
+
+# file suffix of MSA files
+file_suffix = "fasta"
+
+# whether the MSAs are empirical or simulated
+empirical = True
+
+# provide a path to an executable of RAxML-NG
+# we used RAxML-NG version 1.1.0
+raxml_ng = "path/to/raxml-ng/bin/raxml-ng"
+
+# provide a path to the pickled PyPythia difficulty predictor
+# we used the predictor of Pythia version 1.0.0
+predictor_path = "path/to/PyPythia/pypythia/predictors/predictor_lgb_v1.0.0.pckl"
+# ================================
+
+predictor = DifficultyPredictor(open(predictor_path, "rb"))
+
+msa_files = pathlib.Path(data_src).rglob(f"*.{file_suffix}")
+msas = dict([(str(i), msa_file.absolute()) for i, msa_file in enumerate(msa_files)])
+
+print(f"ANALYZING {len(msas)} MSAs.")
+
+
+def _get_stats_for_batch(brlen_batch, suffix):
+    return {
+        f"mean_{suffix}": statistics.mean(brlen_batch),
+        f"median_{suffix}": statistics.median(brlen_batch),
+        f"stdev_{suffix}": statistics.stdev(brlen_batch),
+        f"total_{suffix}": sum(brlen_batch),
+        f"min_{suffix}": min(brlen_batch),
+        f"max_{suffix}": max(brlen_batch),
+    }
+
+
+def compute_brlen_statistics(newick_tree):
+    tree = Tree(newick_tree)
+    external_brlens = []
+    internal_brlens = []
+
+    internal_nodes = []
+
+    for node in tree.traverse():
+        if node.is_leaf():
+            external_brlens.append(node.dist)
+        else:
+            internal_brlens.append(node.dist)
+            internal_nodes.append(node)
+
+    all_brlens = external_brlens + internal_brlens
+
+    data = {
+        **_get_stats_for_batch(external_brlens, "_external_brlens"),
+        **_get_stats_for_batch(internal_brlens, "_internal_brlens"),
+        **_get_stats_for_batch(all_brlens, "_all_brlens")
+    }
+
+    return data
+
+
+rule all:
+    input:
+        os.path.join(outdir, prefix + ".parquet")
+
+
+rule raxmlng_treesearch:
+    output:
+        raxml_bestTree = os.path.join(outdir, "{msa}", "raxmlng", "inference.raxml.bestTree")
+    params:
+        msa_file = lambda wildcards: msas[wildcards.msa],
+        prefix = os.path.join(outdir, "{msa}", "raxmlng", "inference")
+    log:
+        raxml_log = os.path.join(outdir, "{msa}", "raxmlng", "inference.raxml.log")
+    run:
+        msa = MSA(params.msa_file)
+        model = msa.get_raxmlng_model()
+
+        shell(
+            f"{raxml_ng} "
+            "--search1 "
+            "--msa {params.msa_file} "
+            "--model {model} "
+            "--prefix {params.prefix} "
+            "--threads 2 "
+            # "--redo "
+            "> {log.raxml_log}"
+        )
+
+
+rule raxmlng_eval:
+    input:
+        raxml_bestTree = rules.raxmlng_treesearch.output.raxml_bestTree
+    output:
+        raxml_bestEvalTree = os.path.join(outdir, "{msa}", "raxmlng", "eval.raxml.bestTree")
+    params:
+        msa_file = lambda wildcards: msas[wildcards.msa],
+        prefix = os.path.join(outdir, "{msa}", "raxmlng", "eval")
+    log:
+        raxml_log = os.path.join(outdir, "{msa}", "raxmlng", "eval.raxml.log")
+    run:
+        msa = MSA(params.msa_file)
+        model = msa.get_raxmlng_model()
+
+        shell(
+            f"{raxml_ng} "
+            "--eval "
+            "--tree {input.raxml_bestTree} "
+            "--msa {params.msa_file} "
+            "--model {model} "
+            "--prefix {params.prefix} "
+            "--threads 2 "
+            # "--redo "
+            "> {log.raxml_log}"
+        )
+
+
+rule collect_data:
+    input:
+        raxml_bestEvalTree = rules.raxmlng_eval.output.raxml_bestEvalTree,
+        raxml_log = rules.raxmlng_treesearch.log.raxml_log
+    output:
+        dataframe = os.path.join(outdir, "{msa}", "features.parquet")
+    params:
+        msa_file = lambda wildcards: msas[wildcards.msa]
+    run:
+        raxmlng = RAxMLNG(raxml_ng)
+        msa = MSA(params.msa_file)
+        features = get_all_features(raxmlng, msa, log_info=False)
+        difficulty = predictor.predict(features)
+
+        best_tree_newick = open(input.raxml_bestEvalTree).readline().strip()
+
+        brlen_stats = compute_brlen_statistics(best_tree_newick)
+
+
+        all_data = {
+            "msa_path": str(params.msa_file),
+            "empirical": empirical,
+            "data_source": prefix,
+            "data_type": msa.data_type.value,
+            "difficulty": difficulty,
+            "num_patterns/num_sites": features["num_patterns"] / features["num_sites"],
+            "pattern_entropy": features["bollback"] + features["num_sites"] * np.log2(features["num_sites"])
+            **features,
+            **brlen_stats,
+        }
+
+        all_data = pd.DataFrame(data=all_data, index=[int(wildcards.msa)])
+        all_data.to_parquet(output.dataframe)
+
+
+rule collect_all_dataframes:
+    input:
+        dataframes = expand(os.path.join(outdir,"{msa}","features.parquet"),msa=msas.keys()),
+    output:
+        dataframe = os.path.join(outdir, prefix + ".parquet")
+    run:
+        dfs = []
+        for df_file in input.dataframes:
+            dfs.append(pd.read_parquet(df_file))
+        df = pd.concat(dfs)
+        df.to_parquet(output.dataframe)
+

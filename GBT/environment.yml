@@ -1,0 +1,13 @@
+name: simulation
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - snakemake
+  - pandas
+  - pyarrow
+  - plotly
+  - lightgbm
+  - optuna
+  - scikit-learn
+  - tabulate
