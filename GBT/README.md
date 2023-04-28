@@ -6,7 +6,7 @@ This directory contains all scripts and results for the gradient boosted trees
 
 1. Create a new conda environment using the provided `environment.yml` file:
    ```commandline
-    env create -f environment.yml
+    conda env create -f environment.yml
     ```
 2. Activate the environment:
     ```commandline
