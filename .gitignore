@@ -1,8 +1,8 @@
 # uncompressed result files
-GBT/dataframes/
-GBT/dataframes.tar.bz2
-GBT/training_results/
-GBT/training_results.tar.bz2
+dataframes/
+dataframes.tar.bz2
+training_results/
+training_results.tar.bz2
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
