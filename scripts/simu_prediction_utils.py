@@ -6,7 +6,6 @@ from functools import partial
 from typing import Dict, List, Tuple
 
 import lightgbm as lgb
-import numpy as np
 import optuna
 import pandas as pd
 from plotly import graph_objects as go
