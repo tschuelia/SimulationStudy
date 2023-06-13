@@ -103,27 +103,27 @@ model = lgb.Booster(model_file=model_file)
 The following table shows the mapping between the file names (both in the `dataframes` and `training_results` directories) and the dataset names we used in the paper.
 
 
-| Dataset Name               | Paper reference   |
-|----------------------------|-------------------|
-| DNA Gapless                |                   |
-| sim_jc                     | JC                |
-| sim_hky                    | HKY               |
-| sim_gtr                    | GTR               |
-| sim_gtr_g                  | GTR+G             |
-| sim_gtr_g_i                | GTR+G+I           |
-| DNA with gaps              |                   |
-| mimick_sim_gtr_g_i         | GTR+G+I+mimick    |
-| sparta_sim_gtr_g_i         | GTR+G+I+sparta    |
-| AA Gapless                 |                   | 
-| alisim_poisson_gapless     | Poisson           |
-| alisim_wag_gapless         | WAG               |
-| alisim_lg_gapless          | LG                |
-| alisim_lg_c60_gapless      | LG+C60            |
-| alisim_lg_s0256_gapless    | LG+S256           | 
-| alisim_lg_s0256_g4_gapless | LG+S256+G4        |
-| alisim_lg_s0256_gc_gapless | LG+S256+GC        |
-| AA with gaps               |                   |
-| alisim_lg_s0256_gc_sabc    | LG+S256+GC+sparta |
+| Dataset Name      | Paper reference   |
+|-------------------|-------------------|
+| DNA Gapless       |                   |
+| sim_jc            | JC                |
+| sim_hky           | HKY               |
+| sim_gtr           | GTR               |
+| sim_gtr_g         | GTR+G             |
+| sim_gtr_g_i       | GTR+G+I           |
+| DNA with gaps     |                   |
+| mimick_sim_gtr_g_i | GTR+G+I+mimick    |
+| sparta_sim_gtr_g_i | GTR+G+I+sparta    |
+| AA Gapless        |                   | 
+| sim_poisson_gapless | Poisson           |
+| sim_wag_gapless   | WAG               |
+| sim_lg_gapless    | LG                |
+| sim_lg_c60_gapless | LG+C60            |
+| sim_lg_s0256_gapless | LG+S256           | 
+| sim_lg_s0256_g4_gapless | LG+S256+G4        |
+| sim_lg_s0256_gc_gapless | LG+S256+GC        |
+| AA with gaps      |                   |
+| sim_lg_s0256_gc_sabc | LG+S256+GC+sparta |
 
 
 

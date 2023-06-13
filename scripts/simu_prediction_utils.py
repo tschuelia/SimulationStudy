@@ -88,13 +88,13 @@ SIMULATED_DNA_DATA_GAPLESS = [
 ]
 
 SIMULATED_AA_DATA_GAPLESS = [
-    "alisim_poisson_gapless",
-    "alisim_wag_gapless",
-    "alisim_lg_gapless",
-    "alisim_lg_c60_gapless",
-    "alisim_lg_s0256_gapless",
-    "alisim_lg_s0256_g4_gapless",
-    "alisim_lg_s0256_gc_gapless",
+    "sim_poisson_gapless",
+    "sim_wag_gapless",
+    "sim_lg_gapless",
+    "sim_lg_c60_gapless",
+    "sim_lg_s0256_gapless",
+    "sim_lg_s0256_g4_gapless",
+    "sim_lg_s0256_gc_gapless",
 ]
 
 # =========================
@@ -102,7 +102,7 @@ SIMULATED_AA_DATA_GAPLESS = [
 # =========================
 SIMULATED_DNA_DATA_WITH_GAPS = ["mimick_sim_gtr_g_i", "sparta_sim_gtr_g_i"]
 
-SIMULATED_AA_DATA_WITH_GAPS = ["alisim_lg_s0256_gc_sabc"]
+SIMULATED_AA_DATA_WITH_GAPS = ["sim_lg_s0256_gc_sabc"]
 
 # =========================
 
