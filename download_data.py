@@ -56,7 +56,7 @@ if __name__ == "__main__":
     )
 
     unpack_data = parser.parse_args().unpack
-    download_path = "https://cme.h-its.org/exelixis/material/simulations/TODO.tar.gz"
+    download_path = "https://cme.h-its.org/exelixis/material/simulation_study.tar.gz"
 
     with tempfile.TemporaryDirectory() as tmpdir:
         print("Downloading data from ", download_path)
@@ -68,6 +68,6 @@ if __name__ == "__main__":
         tar.close()
 
         tmpdir = pathlib.Path(tmpdir)
-        move_and_unpack_data(tmpdir=tmpdir, src_dir="publication_data", filename="input_data.tar.gz", unpack_data=unpack_data)
-        move_and_unpack_data(tmpdir=tmpdir, src_dir="publication_data/GBT", filename="dataframes.tar.gz", unpack_data=unpack_data)
-        move_and_unpack_data(tmpdir=tmpdir, src_dir="publication_data/GBT", filename="training_results.tar.gz", unpack_data=unpack_data)
+        move_and_unpack_data(tmpdir=tmpdir, src_dir="supplementary_data", filename="input_data.tar.gz", unpack_data=unpack_data)
+        move_and_unpack_data(tmpdir=tmpdir, src_dir="supplementary_data/GBT", filename="dataframes.tar.gz", unpack_data=unpack_data)
+        move_and_unpack_data(tmpdir=tmpdir, src_dir="supplementary_data/GBT", filename="training_results.tar.gz", unpack_data=unpack_data)

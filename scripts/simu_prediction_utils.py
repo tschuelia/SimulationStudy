@@ -37,7 +37,8 @@ RANDOMNESS_FEATURES = [
     "chi_2",
     "mean_rand",
     "mcpi",
-    "scc"
+    "scc",
+    "comp"
 ]
 
 BASIC_BRLEN_STATS = [
@@ -88,13 +89,13 @@ SIMULATED_DNA_DATA_GAPLESS = [
 ]
 
 SIMULATED_AA_DATA_GAPLESS = [
-    "sim_poisson_gapless",
-    "sim_wag_gapless",
-    "sim_lg_gapless",
-    "sim_lg_c60_gapless",
-    "sim_lg_s0256_gapless",
-    "sim_lg_s0256_g4_gapless",
-    "sim_lg_s0256_gc_gapless",
+    "sim_poisson",
+    "sim_wag",
+    "sim_lg",
+    "sim_lg_c60",
+    "sim_lg_s0256",
+    "sim_lg_s0256_g4",
+    "sim_lg_s0256_gc",
 ]
 
 # =========================

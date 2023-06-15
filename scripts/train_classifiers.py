@@ -105,7 +105,7 @@ def optimize_and_train(args) -> None:
 def print_res(data: list) -> None:
     results_string = ""
 
-    for (empirical, simulated, src) in data:
+    for simulated, src in data:
         results_string += textwrap.dedent(
             f"""
             ==================================
@@ -127,12 +127,12 @@ def print_res(data: list) -> None:
 
 
 def plot_top_features(data: list) -> None:
-    for (empirical, simulated, src) in data:
+    for simulated, src in data:
         plot_important_features(
             data_src_dir=src,
             result_base_dir=RESULTS,
             simulated_data_names=simulated,
-            empirical_data_name=empirical,
+            empirical_data_name="empirical",
             features=FEATURES,
             feat_importance_type=feat_importance_type,
             n_features=n_plot_features,
@@ -140,12 +140,12 @@ def plot_top_features(data: list) -> None:
 
 
 def plot_brlen_features(data: list) -> None:
-    for (empirical, simulated, src) in data:
+    for simulated, src in data:
         plot_all_features(
             data_src_dir=src,
             result_base_dir=RESULTS,
             simulated_data_names=simulated,
-            empirical_data_name=empirical,
+            empirical_data_name="empirical",
         )
 
 
@@ -158,7 +158,7 @@ if __name__ == "__main__":
 
     # if True, use additional basic branch length statistics (summarizing all branches in the tree)
     # if False, only use the MSA features
-    use_brlens = False
+    use_brlens = True
 
     # if True, additionally separates the Branch Lengths statistics into internal, external branch lenghts
     # external branches are branches adjacent to a leaf node
@@ -201,8 +201,8 @@ if __name__ == "__main__":
     # =========================
     print("FEATURES: ", FEATURES)
 
-    DATA_SRC = pathlib.Path("dataframes")
-    RESULTS = pathlib.Path("training") / str(dirname)
+    DATA_SRC = pathlib.Path("../dataframes")
+    RESULTS = pathlib.Path("../training_results") / str(dirname)
     RESULTS.mkdir(exist_ok=True, parents=True)
     print("WRITING DATA TO: ", RESULTS)
 

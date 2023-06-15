@@ -5,6 +5,9 @@ training_results/
 training_results.tar.gz
 input_data/
 input_data.tar.gz
+supplementary_data
+supplementary_data.tar.gz
+scripts/predictions
 
 # snakemake files
 scripts/.snakemake/

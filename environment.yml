@@ -11,6 +11,6 @@ dependencies:
   - optuna=3.0.2
   - scikit-learn=1.0.2
   - tabulate=0.8.9
-  - pip=21.3.1
-  - pip:
-    - git+https://github.com/tschuelia/PyPythia.git@1.1.0
+  - biopython
+  - ete3
+  - pypythia

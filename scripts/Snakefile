@@ -1,5 +1,7 @@
+import collections
 import os
 import tarfile
+import tempfile
 
 import numpy as np
 import pandas as pd
@@ -7,42 +9,26 @@ import pathlib
 import statistics
 
 from ete3 import Tree
+from Bio import Phylo
 
 from pypythia.prediction import get_all_features
 from pypythia.msa import MSA
 from pypythia.raxmlng import RAxMLNG
 from pypythia.predictor import DifficultyPredictor
 
+configfile: "config.yaml"
 
-# ================================
-# CONFIG
+parquet_file_prefix = config["parquet_file_prefix"]
+data_src = pathlib.Path(config["data_src"])
+outdir = pathlib.Path(config["outdir"]) / parquet_file_prefix
 
-# name prefix of the final parquet file
-prefix = "empirical"
+msa_file_suffix = config["msa_file_suffix"]
+empirical = config["empirical"]
 
-# directory containing the respective MSA files you want to analyze in this run
-# if the directory does not exist, Snakemake will look for the same directory with .tar.gz ending (compressed directory) and uncompress it
-data_src = f"../../input_data/dna_gapless/sim_gtr_g_i"
+raxml_ng = config["raxml_ng"]
+radomness_tester = config["radomness_tester"]
 
-# where to store all intermediate and final output files
-# this directory will contain a file called {prefix}.parquet with the results for all MSAs
-outdir = f"../dataframes/{prefix}"
-
-# file suffix of MSA files
-file_suffix = "fasta"
-
-# whether the MSAs are empirical or simulated
-empirical = True
-
-# provide a path to an executable of RAxML-NG
-# we used RAxML-NG version 1.1.0
-raxml_ng = "path/to/raxml-ng/bin/raxml-ng"
-
-# provide a path to the pickled PyPythia difficulty predictor
-# we used the predictor of Pythia version 1.0.0
-predictor_path = "path/to/PyPythia/pypythia/predictors/predictor_lgb_v1.0.0.pckl"
-# ================================
-
+predictor_path = config["predictor_path"]
 predictor = DifficultyPredictor(open(predictor_path, "rb"))
 
 data_src = pathlib.Path(data_src)
@@ -55,10 +41,8 @@ if not data_src.exists():
     tar.extractall(path=data_src.parent)
     tar.close()
 
-msa_files = pathlib.Path(data_src).rglob(f"*.{file_suffix}")
+msa_files = pathlib.Path(data_src).rglob(f"*.{msa_file_suffix}")
 msas = dict([(msa_file.name, msa_file.absolute()) for msa_file in msa_files])
-
-print(f"ANALYZING {len(msas)} MSAs.")
 
 
 def _get_stats_for_batch(brlen_batch, suffix):
@@ -97,9 +81,50 @@ def compute_brlen_statistics(newick_tree):
     return data
 
 
+def parse_randomness_log(logfile):
+    randomness = {
+        "entropy_rand": 0,
+        "chi_2": 0,
+        "mean_rand": 0,
+        "mcpi": -1,
+        "scc": 0,
+        "comp": 0
+    }
+    for line in open(logfile).readlines():
+        split_line = line.strip().split()
+        if line.startswith("Entropy"):
+            # Entropy = 0.000000 bits per byte
+            randomness["entropy_rand"] = float(split_line[2]) / 8.0
+        elif line.startswith("of this "):
+            # Optimum compression would reduce the size
+            # of this 0 byte file by 100 percent.
+            randomness["comp"] = 1.0 - (float(split_line[6]) / 100.0)
+        elif line.startswith("would exceed "):
+            # Chi square distribution for 0 samples is nan, and randomly
+            # would exceed this value nan percent of the times.
+            if split_line[4] == "nan":
+                continue
+            if "less than" in line:
+                randomness["chi_2"] = 1.0 - float(split_line[6])
+            else:
+                randomness["chi_2"] = 1.0 - float(split_line[4])
+        elif line.startswith("Arithmetic mean "):
+            # Arithmetic mean value of data bytes is nan (127.5 = random).
+            if split_line[7] != "nan":
+                randomness["mean_rand"] = float(split_line[7]) / 127.5
+        elif line.startswith("Monte Carlo "):
+            # Monte Carlo value for Pi is nan (error nan percent).
+            if split_line[8] != "nan":
+                randomness["mcpi"] = float(split_line[8]) / 100.0
+        elif line.startswith("Serial correlation "):
+            # Serial correlation coefficient is undefined (all values equal!).
+            if split_line[4] != "undefined":
+                randomness["scc"] = 1.0 - abs(float(split_line[4]))
+    return randomness
+
 rule all:
     input:
-        os.path.join(outdir, prefix + ".parquet")
+        os.path.join(outdir,parquet_file_prefix + ".parquet")
 
 
 rule raxmlng_treesearch:
@@ -121,7 +146,6 @@ rule raxmlng_treesearch:
             "--model {model} "
             "--prefix {params.prefix} "
             "--threads 2 "
-            # "--redo "
             "> {log.raxml_log}"
         )
 
@@ -153,10 +177,101 @@ rule raxmlng_eval:
         )
 
 
+rule raxmlng_parsimony_tree:
+    output:
+        raxml_parsTree = os.path.join(outdir, "{msa}", "raxmlng", "parsimony.raxml.startTree")
+    params:
+        msa_file = lambda wildcards: msas[wildcards.msa],
+        prefix = os.path.join(outdir,"{msa}", "raxmlng", "parsimony")
+    log:
+        raxml_log = os.path.join(outdir,"{msa}", "raxmlng", "parsimony.raxml.log")
+    run:
+        msa = MSA(params.msa_file)
+        model = msa.get_raxmlng_model()
+
+        shell(
+            f"{raxml_ng} "
+            "--start "
+            "--tree pars{{1}} "
+            "--msa {params.msa_file} "
+            "--model {model} "
+            "--prefix {params.prefix} "
+            "--threads 2 "
+            "> {log.raxml_log}"
+        )
+
+
+def traverse_tree_and_count_mutations(clade, msa_sequences, mutation_counter):
+    """
+    Traverses a tree recursively and counts the number of substitutions based on the parsimony rule.
+    :param clade: current tree node
+    :param msa: dict with map of leaf name to nucleotide sequence
+    :param mutation_counter: list with per-site substitution counts
+    """
+
+    if clade.name:
+        return [[char] for char in msa_sequences[clade.name]]
+
+    pars_seq = []
+    for c in clade.clades:
+        if not pars_seq:
+            pars_seq = traverse_tree_and_count_mutations(c, msa_sequences, mutation_counter)
+        else:
+            temp_pars_seq = traverse_tree_and_count_mutations(c, msa_sequences, mutation_counter)
+            for i in range(len(pars_seq)):
+                site1 = pars_seq[i]
+                site2 = temp_pars_seq[i]
+
+                intersection = list(set(site1) & set(site2))
+
+                if len(intersection) == 0:
+                    mutation_counter[i] += 1
+                    intersection = site1 + site2
+
+                pars_seq[i] = intersection
+    return pars_seq
+
+
+rule randomness:
+    input:
+        raxml_parsTree = rules.raxmlng_parsimony_tree.output.raxml_parsTree
+    output:
+        randomness = os.path.join(outdir, "{msa}", "randomness.txt")
+    params:
+        msa_file = lambda wildcards: msas[wildcards.msa]
+    run:
+        msa = MSA(params.msa_file)
+        msa_dict = dict((seq.id, seq.seq) for seq in msa.msa)
+
+        clade = Phylo.read(input.raxml_parsTree, "newick")
+        mutation_counter = collections.defaultdict(int)
+        traverse_tree_and_count_mutations(clade.root, msa_dict, mutation_counter)
+
+        mutation_counter = [mutation_counter[i] for i in range(msa.number_of_sites())]
+
+        # pad sequence if too short, reduce if too long (since the random sequence tester complains)
+        if len(mutation_counter) < 10:
+            mutation_counter += [0] * (10 - len(mutation_counter))
+
+        mutation_counter = mutation_counter[:100_000]
+
+        with tempfile.NamedTemporaryFile("wb+") as tmpfile:
+            tmpfile.write(bytes(mutation_counter))
+
+            # run the Fourmilab Random Sequence Tester
+            shell(
+                radomness_tester +
+                " " +
+                tmpfile.name +
+                " > " + output.randomness
+            )
+
+
 rule collect_data:
     input:
         raxml_bestEvalTree = rules.raxmlng_eval.output.raxml_bestEvalTree,
-        raxml_log = rules.raxmlng_treesearch.log.raxml_log
+        raxml_log = rules.raxmlng_treesearch.log.raxml_log,
+        randomness_log = rules.randomness.output.randomness
     output:
         dataframe = os.path.join(outdir, "{msa}", "features.parquet")
     params:
@@ -171,17 +286,19 @@ rule collect_data:
 
         brlen_stats = compute_brlen_statistics(best_tree_newick)
 
+        randomness_features = parse_randomness_log(input.randomness_log)
 
         all_data = {
             "msa_path": str(params.msa_file),
             "empirical": empirical,
-            "data_source": prefix,
+            "data_source": parquet_file_prefix,
             "data_type": msa.data_type.value,
             "difficulty": difficulty,
             "num_patterns/num_sites": features["num_patterns"] / features["num_sites"],
             "pattern_entropy": features["bollback"] + features["num_sites"] * np.log2(features["num_sites"]),
             **features,
             **brlen_stats,
+            **randomness_features
         }
 
         all_data = pd.DataFrame(data=all_data, index=[0])
@@ -192,7 +309,7 @@ rule collect_all_dataframes:
     input:
         dataframes = expand(os.path.join(outdir,"{msa}","features.parquet"),msa=msas.keys()),
     output:
-        dataframe = os.path.join(outdir, prefix + ".parquet")
+        dataframe = os.path.join(outdir,parquet_file_prefix + ".parquet")
     run:
         dfs = []
         for df_file in input.dataframes:

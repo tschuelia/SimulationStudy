@@ -1,0 +1,29 @@
+# name prefix of the final parquet file
+parquet_file_prefix: empirical
+
+# directory containing the respective MSA files you want to analyze in this run
+# if the directory does not exist, Snakemake will look for the same directory with .tar.gz ending (compressed directory) and uncompress it
+data_src: ../../input_data/dna_gapless/sim_gtr_g_i
+
+# where to store all intermediate and final output files
+# this directory will contain a file called {prefix}.parquet with the results for all MSAs
+outdir: ../dataframes
+
+# file suffix of MSA files
+msa_file_suffix: fasta
+
+# whether the MSAs are empirical or simulated
+empirical: True
+
+# provide a path to an executable of RAxML-NG
+# we used RAxML-NG version 1.1.0
+raxml_ng: path/to/raxml-ng/bin/raxml-ng
+
+# provide a path to the pickled PyPythia difficulty predictor
+# we used the predictor of Pythia version 1.0.0
+predictor_path: path/to/PyPythia/pypythia/predictors/predictor_lgb_v1.0.0.pckl
+
+# provide a path to an executable of the ENT — Fourmilab Random Sequence Tester
+# https://github.com/Fourmilab/ent_random_sequence_tester
+radomness_tester: path/to/ent_random_sequence_tester/src/ent
+
