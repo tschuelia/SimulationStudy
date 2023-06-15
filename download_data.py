@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--unpack",
-        help="If set, unpack all compressed subdirectories as well. This will require TODO GB of disk space.",
+        help="If set, unpack all compressed subdirectories as well. This will require approx. 30 GB of disk space.",
         action="store_true"
     )
 

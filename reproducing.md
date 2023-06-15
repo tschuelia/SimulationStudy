@@ -6,7 +6,7 @@ This file contains all instructions required to reproduce the GBT related result
 ## Download the input and results data
 The script `download_data.py` automatically downloads the data and moves the files to the proper directories.
 To run the file, run the following in your terminal: `python download_data.py`
-If you want to unpack all GBT related subdirectories as well, run `python download_data.py --unpack`. This will require approx. TODO GB of disk space.
+If you want to unpack all GBT related subdirectories as well, run `python download_data.py --unpack`. This will require approx. 30 GB of disk space.
 
 ## Running the pipeline
 1. Create a new conda environment using the provided `environment.yml` file:
