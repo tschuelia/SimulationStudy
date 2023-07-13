@@ -46,5 +46,5 @@ with all predictions in `predictions/{parquet_file_prefix}.parquet`.
 
 
 ## Publication
-The respective publication is available as preprint on BioRxiv
-TODO: add publication.
+The respective publication is available as preprint on BioRxiv:
+Trost, J., Haag, J., Höhler, D., Nesterenko, L., Jacob, L., Stamatakis, A. & Boussau, B. (2023). **Simulations of sequence evolution: how (un)realistic they really are and why** *bioRxiv*, [https://www.biorxiv.org/content/10.1101/2023.07.11.548509v1](https://www.biorxiv.org/content/10.1101/2023.07.11.548509v1)
