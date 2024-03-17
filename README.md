@@ -47,7 +47,7 @@ with all predictions in `predictions/{parquet_file_prefix}.parquet`.
 
 ## Publication
 The paper explaining the details of our simulation study is published in MBE:    
-Trost, J.*, Haag, J.*, Höhler, D.*, Nesterenko, L., Jacob, L., Stamatakis, A. & Boussau, B. (2024). **Simulations of Sequence Evolution: How (Un)realistic They Are and Why.** *Molecular Biology and Evolution*, 41(1). [https://doi.org/10.1093/molbev/msad277](https://doi.org/10.1093/molbev/msad277)
-<br>*equal contribution
+Trost, J.<sup>1</sup>, Haag, J.<sup>1</sup>, Höhler, D.<sup>1</sup>, Nesterenko, L., Jacob, L., Stamatakis, A. & Boussau, B. (2024). **Simulations of Sequence Evolution: How (Un)realistic They Are and Why.** *Molecular Biology and Evolution*, 41(1). [https://doi.org/10.1093/molbev/msad277](https://doi.org/10.1093/molbev/msad277)
+<br><sup>1</sup>equal contribution
 
 
