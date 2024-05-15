@@ -257,6 +257,7 @@ rule randomness:
 
         with tempfile.NamedTemporaryFile("wb+") as tmpfile:
             tmpfile.write(bytes(mutation_counter))
+            tmpfile.flush()
 
             # run the Fourmilab Random Sequence Tester
             shell(
